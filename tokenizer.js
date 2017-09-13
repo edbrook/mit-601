@@ -54,6 +54,17 @@ function BinaryOp(left, right) {
     };
 }
 
+function makeBinaryOp(name, fn) {
+    function binOp(left, right) {
+        BinaryOp.call(this, left, right);
+        this.opStr = name;
+        this.op = fn;
+    }
+    binOp.prototype = Object.create(BinaryOp.prototype);
+    binOp.prototype.constructor = binOp;
+    return binOp;
+}
+
 function Assign(left, right) {
     BinaryOp.call(this, left, right);
     this.opStr = 'Assign';
@@ -70,37 +81,12 @@ function Assign(left, right) {
 Assign.prototype = Object.create(BinaryOp.prototype);
 Assign.prototype.constructor = Assign;
 
-function Add(left, right) {
-    BinaryOp.call(this, left, right);
-    this.opStr = 'Add';
-    this.op = (l, r) => l + r;
-}
-Add.prototype = Object.create(BinaryOp.prototype);
-Add.prototype.constructor = Add;
-
-function Sub(left, right) {
-    BinaryOp.call(this, left, right);
-    this.opStr = 'Sub';
-    this.op = (l, r) => l - r;
-}
-Sub.prototype = Object.create(BinaryOp.prototype);
-Sub.prototype.constructor = Sub;
-
-function Mul(left, right) {
-    BinaryOp.call(this, left, right);
-    this.opStr = 'Mul';
-    this.op = (l, r) => l * r;
-}
-Mul.prototype = Object.create(BinaryOp.prototype);
-Mul.prototype.constructor = Mul;
-
-function Div(left, right) {
-    BinaryOp.call(this, left, right);
-    this.opStr = 'Div';
-    this.op = (l, r) => l / r;
-}
-Div.prototype = Object.create(BinaryOp.prototype);
-Div.prototype.constructor = Div;
+const Add = makeBinaryOp('Add', (l,r) => l + r);
+const Sub = makeBinaryOp('Sub', (l,r) => l - r);
+const Mul = makeBinaryOp('Mul', (l,r) => l * r);
+const Div = makeBinaryOp('Div', (l,r) => l / r);
+const Pow = makeBinaryOp('Pow', (l,r) => Math.pow(l, r));
+const Mod = makeBinaryOp('Mod', (l,r) => l % r);
 
 // --------------------
 
@@ -152,6 +138,12 @@ function parse(tokens) {
                 expr = new Mul(l, r);
             } else if ( op === '/' ) {
                 expr = new Div(l, r);
+            } else if ( op === '^' ) {
+                expr = new Pow(l, r);
+            } else if ( op === '%' ) {
+                expr = new Mod(l, r);
+            } else {
+                console.log('Invalid operator: ', op);
             }
         } else if (typeof token === 'number') {
             expr = new Num(token);
@@ -167,7 +159,7 @@ function parse(tokens) {
 }
 
 // --------------------
-
+/*
 function testAll() {
     let env = {};
     let expr;
@@ -188,6 +180,8 @@ function testAll() {
     expr = parse(tokenize('abc'));
     console.log(`${expr} = ${expr.eval(env)}`);
 }
+testAll();
+*/
 
 function calc() {
     const readline = require('readline');
@@ -204,12 +198,13 @@ function calc() {
             console.log('bye!');
             rl.close();
             return;
+        } else if (res === 'env') {
+            console.log(env);
+        } else {
+            let resp = parse(tokenize(res)).eval(env)
+            resp && console.log(resp);
         }
-        let resp = parse(tokenize(res)).eval(env)
-        resp && console.log(resp);
         rl.prompt();
     });
 }
-
-testAll();
 calc();
