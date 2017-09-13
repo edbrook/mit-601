@@ -159,29 +159,6 @@ function parse(tokens) {
 }
 
 // --------------------
-/*
-function testAll() {
-    let env = {};
-    let expr;
-    console.log("ENV: ", env);
-    expr = parse(tokenize('(abc = 42)'));
-    expr.eval(env);
-    console.log(expr.toString());
-    console.log("ENV: ", env);
-    expr = parse(tokenize('(ans = (24 + (abc * ((16 / 2) - 5)))'));
-    expr.eval(env);
-    console.log(expr.toString());
-    // *********************
-    // const util = require('util');
-    // console.log("\nExpression object:");
-    // console.log(util.inspect(expr, false, null));
-    // *********************
-    console.log("ENV: ", env);
-    expr = parse(tokenize('abc'));
-    console.log(`${expr} = ${expr.eval(env)}`);
-}
-testAll();
-*/
 
 function calc() {
     const readline = require('readline');
