@@ -76,7 +76,7 @@ function Assign(left, right) {
             val = this.right.eval(env);
         }
         env[this.left.name] = val;
-        return `__SET__(ENV[${this.left.name}], ${val})`;
+        return `SET('${this.left.name}' to ${val})`;
     };
 }
 Assign.prototype = Object.create(BinaryOp.prototype);
