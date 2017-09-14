@@ -76,6 +76,7 @@ function Assign(left, right) {
             val = this.right.eval(env);
         }
         env[this.left.name] = val;
+        return `__SET__(ENV[${this.left.name}], ${val})`;
     };
 }
 Assign.prototype = Object.create(BinaryOp.prototype);
@@ -85,7 +86,7 @@ const Add = makeBinaryOp('Add', (l,r) => l + r);
 const Sub = makeBinaryOp('Sub', (l,r) => l - r);
 const Mul = makeBinaryOp('Mul', (l,r) => l * r);
 const Div = makeBinaryOp('Div', (l,r) => l / r);
-const Pow = makeBinaryOp('Pow', (l,r) => Math.pow(l, r));
+const Pow = makeBinaryOp('Pow', Math.pow);
 const Mod = makeBinaryOp('Mod', (l,r) => l % r);
 
 // --------------------
@@ -120,6 +121,7 @@ function tokenize(input) {
 }
 
 function parse(tokens) {
+    console.log('-----------------');
     function parseToken(idx) {
         let token = tokens[idx];
         let expr;
@@ -127,7 +129,7 @@ function parse(tokens) {
             var { expr: l, idx } = parseToken(idx+1);
             var op = tokens[idx];
             var { expr: r, idx } = parseToken(idx+1);
-            //console.log(`>>> L:${l.toString()} OP:${op} R:${r.toString()}`);
+            console.log(`>>> L:${l.toString()} OP:${op} R:${r.toString()}`);
             if ( op === '=' ) {
                 expr = new Assign(l, r);
             } else if ( op === '+' ) {
@@ -143,7 +145,7 @@ function parse(tokens) {
             } else if ( op === '%' ) {
                 expr = new Mod(l, r);
             } else {
-                console.log('Invalid operator: ', op);
+                console.log('Unknown operator: ', op);
             }
         } else if (typeof token === 'number') {
             expr = new Num(token);
@@ -158,30 +160,112 @@ function parse(tokens) {
     return expr;
 }
 
-// --------------------
+// ******************************************
 
-function calc() {
-    const readline = require('readline');
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-    let env = {};
-    rl.setPrompt('% ');
-    rl.prompt();
-    rl.on('line', (res) => {
-        res = res.trim();
-        if (res === 'quit') {
-            console.log('bye!');
-            rl.close();
-            return;
-        } else if (res === 'env') {
-            console.log(env);
-        } else {
-            let resp = parse(tokenize(res)).eval(env)
-            resp && console.log(resp);
+(function(){
+    const MAX_HISTORY_ITEMS = 10;
+    const MAX_DISPLAY_LINES = 100;
+
+    const frm = document.querySelector('#frm');
+    const inp = document.querySelector('#in');
+    const out = document.querySelector('#out');
+
+    const env = {};
+    const disp = [];
+    const history = [];
+    let histPos = 0;
+
+    function autoScrollOutput() {
+        out.scrollTop = out.scrollHeight;
+    }
+
+    function displayEnvironment() {
+        disp.push('>>> ENV = ' + JSON.stringify(env));
+    }
+
+    function displayHistory() {
+        disp.push('>>> HISTORY:');
+        history.forEach(h => disp.push('\t' + h));
+        disp.push('END');
+    }
+
+    function displayExprAndResponse(line, resp) {
+        disp.push('<<< ' + line);
+        disp.push('>>> ' + String(resp));
+    }
+
+    function showOutput() {
+        out.textContent = disp.join('\n');
+        autoScrollOutput();
+    }
+
+    function updateHistory(line) {
+        if (history[history.length-1] !== line) {
+            history.push(line);
+            while (history.length > MAX_HISTORY_ITEMS) {
+                history.shift();
+            }
         }
-        rl.prompt();
-    });
-}
-calc();
+        histPos = history.length;
+    }
+
+    function processLine(line) {
+        let resp;
+        try {
+            resp = parse(tokenize(line)).eval(env)
+            displayExprAndResponse(line, resp);
+            updateHistory(line);
+        } catch (e) {
+            window.alert('Invalid input!');
+            histPos = history.length;
+            return;
+        }
+    }
+
+    function calc(e) {
+        e.preventDefault();
+        let line = inp.value.trim();
+        inp.value = '';
+        if (line === 'env') {
+            displayEnvironment();
+        } else if (line === 'history') {
+            displayHistory();
+        } else if (line === '') {
+            return;
+        } else {
+            processLine(line);
+        }
+        while (disp.length > MAX_DISPLAY_LINES) {
+            disp.shift();
+        }
+        showOutput();
+    }
+
+    function pullHistory(e) {
+        if (history.length > 0) {
+            if (e.key === 'ArrowUp') {
+                histPos--;
+                if (histPos < 0) {
+                    histPos = history.length;
+                    inp.value = ''
+                } else {
+                    inp.value = history[histPos];
+                }
+            } else if (e.key === 'ArrowDown') {
+                histPos++;
+                if (histPos > history.length) {
+                    histPos = 0;
+                } else if (histPos === history.length) {
+                    inp.value = '';
+                    return;
+                }
+                inp.value = history[histPos];
+            }
+        }
+    }
+
+    frm.addEventListener('submit', calc);
+    inp.addEventListener('keyup', pullHistory);
+    inp.focus();
+})();
+// ******************************************

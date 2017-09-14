@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Basic Calculator</title>
+    <link rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css"
+      integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+      crossorigin="anonymous">
+  </head>
+  <body>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <h1>Calculator</h1>
+          <div class="form-group row justify-content-center">
+            <textarea name="output" id="out" cols="80" rows="24"></textarea>
+          </div>
+          <form id="frm">
+            <div class="form-group row justify-content-center">
+              <label for="in" class="col-3 col-lg-2 col-form-label">Expression</label>
+              <div class="col-8 col-sm-7">
+                <input type="text" name="in" id="in" class="form-control">
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="./tokenizer.js"></script>
+  </body>
+</html>
