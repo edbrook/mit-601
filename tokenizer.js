@@ -157,6 +157,7 @@ function parse(tokens) {
         return { expr, idx: idx + 1 }
     }
     const { expr, nextId } = parseToken(0);
+    console.log(`>>> EXPR: ${expr}`);
     return expr;
 }
 
@@ -194,6 +195,18 @@ function parse(tokens) {
         disp.push('>>> ' + String(resp));
     }
 
+    function trimDisplayLines() {
+        while (disp.length > MAX_DISPLAY_LINES) {
+            disp.shift();
+        }
+    }
+
+    function trimHistoryItems() {
+        while (history.length > MAX_HISTORY_ITEMS) {
+            history.shift();
+        }
+    }
+
     function showOutput() {
         out.textContent = disp.join('\n');
         autoScrollOutput();
@@ -202,9 +215,7 @@ function parse(tokens) {
     function updateHistory(line) {
         if (history[history.length-1] !== line) {
             history.push(line);
-            while (history.length > MAX_HISTORY_ITEMS) {
-                history.shift();
-            }
+            trimHistoryItems();
         }
         histPos = history.length;
     }
@@ -235,37 +246,44 @@ function parse(tokens) {
         } else {
             processLine(line);
         }
-        while (disp.length > MAX_DISPLAY_LINES) {
-            disp.shift();
-        }
+        trimDisplayLines();
         showOutput();
+    }
+
+    function historyUp() {
+        histPos--;
+        if (histPos < 0) {
+            histPos = history.length;
+            inp.value = ''
+        } else {
+            inp.value = history[histPos];
+        }
+    }
+
+    function historyDown() {
+        histPos++;
+        if (histPos > history.length) {
+            histPos = 0;
+        } else if (histPos === history.length) {
+            inp.value = '';
+            return;
+        }
+        inp.value = history[histPos];
     }
 
     function pullHistory(e) {
         if (history.length > 0) {
             if (e.key === 'ArrowUp') {
-                histPos--;
-                if (histPos < 0) {
-                    histPos = history.length;
-                    inp.value = ''
-                } else {
-                    inp.value = history[histPos];
-                }
+                historyUp();
             } else if (e.key === 'ArrowDown') {
-                histPos++;
-                if (histPos > history.length) {
-                    histPos = 0;
-                } else if (histPos === history.length) {
-                    inp.value = '';
-                    return;
-                }
-                inp.value = history[histPos];
+                historyDown();
             }
         }
     }
 
     frm.addEventListener('submit', calc);
     inp.addEventListener('keyup', pullHistory);
+
     inp.focus();
 })();
 // ******************************************
