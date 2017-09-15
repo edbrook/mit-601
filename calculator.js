@@ -2,6 +2,12 @@
 
 const SEPARATORS = ['(', ')', '+', '-', '*', '/', '='];
 
+function ParseError(msg) {
+    this.msg = msg;
+}
+
+// --------------------
+
 function evalLeftAndRight(left, right, env) {
     let l;
     let r;
@@ -132,8 +138,7 @@ function parse(tokens) {
             var op = tokens[idx];
             var { expr: r, idx } = parseToken(idx+1);
             if (tokens[idx] !== ')') {
-                console.log('Invalid expression: missing closing bracket?');
-                return;
+                throw new ParseError('Invalid expression: missing closing bracket?');
             }
             console.log(`>>> L:${l.toString()} OP:${op} R:${r.toString()}`);
             if ( op === '=' ) {
@@ -151,14 +156,14 @@ function parse(tokens) {
             } else if ( op === '%' ) {
                 expr = new Mod(l, r);
             } else {
-                console.log('Unknown operator: ', op);
+                throw new ParseError('Unknown operator: ' + op);
             }
         } else if (typeof token === 'number') {
             expr = new Num(token);
         } else if (/^[a-zA-Z]+$/.test(token)) {
             expr = new Variable(token);
         } else {
-            console.log('Invalid token: ', token);
+            throw new ParseError('Invalid token: ' + token);
         }
         return { expr, idx: idx + 1 }
     }
@@ -233,7 +238,11 @@ function parse(tokens) {
             displayExprAndResponse(line, resp);
             updateHistory(line);
         } catch (e) {
-            window.alert('Invalid input!');
+            if (e instanceof ParseError) {
+                window.alert(e.msg);
+            } else {
+                window.alert('Invalid input!');
+            }
             histPos = history.length;
             return;
         }
