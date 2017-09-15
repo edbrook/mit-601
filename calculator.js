@@ -131,6 +131,10 @@ function parse(tokens) {
             var { expr: l, idx } = parseToken(idx+1);
             var op = tokens[idx];
             var { expr: r, idx } = parseToken(idx+1);
+            if (tokens[idx] !== ')') {
+                console.log('Invalid expression: missing closing bracket?');
+                return;
+            }
             console.log(`>>> L:${l.toString()} OP:${op} R:${r.toString()}`);
             if ( op === '=' ) {
                 expr = new Assign(l, r);
