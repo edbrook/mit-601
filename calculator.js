@@ -45,14 +45,16 @@ function BinaryOp(left, right) {
     this.opStr = ''
     this.left = left;
     this.right = right;
-    this.eval = (env) => {
-        const {l, r} = evalLeftAndRight(this.left, this.right, env);
-        return this.op(l, r);
-    };
-    this.toString = () => {
-        return `${this.opStr}(${this.left}, ${this.right})`;
-    };
 }
+
+BinaryOp.prototype.eval = function(env) {
+    const {l, r} = evalLeftAndRight(this.left, this.right, env);
+    return this.op(l, r);
+};
+
+BinaryOp.prototype.toString = function() {
+    return `${this.opStr}(${this.left}, ${this.right})`;
+};
 
 function makeBinaryOp(name, fn) {
     function binOp(left, right) {
