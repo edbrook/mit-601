@@ -2,102 +2,81 @@
 
 const SEPARATORS = ['(', ')', '+', '-', '*', '/', '='];
 
-function ParseError(msg) {
-    this.msg = msg;
-}
+const parseError = msg => ({ msg });
 
 // --------------------
 
-function evalLeftAndRight(left, right, env) {
-    let l;
-    let r;
-    if (left instanceof Num) {
-        l = left.value;
-    } else {
-        l = left.eval(env);
+const evalToken = (tok, env) => {
+    if (tok.hasOwnProperty('value')) {
+        return tok.value;
     }
-
-    if (right instanceof Num) {
-        r = right.value;
-    } else {
-        r = right.eval(env);
-    }
-
-    return { l, r };
-}
-
-// --------------------
-
-function Num(val) {
-    this.value = val;
-    this.toString = () => {
-        return `Num(${this.value})`;
-    };
-}
-
-function Variable(name) {
-    this.name = name;
-    this.toString = () => {
-        return `Var('${this.name}')`;
-    };
-    this.eval = (env) => {
-        return env[this.name];
-    };
-}
-
-// --------------------
-
-function BinaryOp(left, right) {
-    this.opStr = ''
-    this.left = left;
-    this.right = right;
-}
-
-BinaryOp.prototype.eval = function(env) {
-    const {l, r} = evalLeftAndRight(this.left, this.right, env);
-    return this.op(l, r);
+    return tok.eval(env);
 };
 
-BinaryOp.prototype.toString = function() {
-    return `${this.opStr}(${this.left}, ${this.right})`;
-};
+const evalLeftAndRight = (left, right, env) => ({
+    l: evalToken(left, env),
+    r: evalToken(right, env)
+});
 
-function makeBinaryOp(name, fn) {
-    function binOp(left, right) {
-        BinaryOp.call(this, left, right);
-        this.opStr = name;
-        this.op = fn;
+// --------------------
+
+const num = value => ({
+    value,
+    toString: _ => `Num(${value})`
+});
+
+const variable = name => ({
+    name,
+    toString: _ => `Var('${name}')`,
+    eval: env => env[name]
+});
+
+// --------------------
+
+const binaryOp = (opStr, op) => (left, right) => ({
+    eval: env => {
+        const {l, r} = evalLeftAndRight(left, right, env);
+        return op(l, r);
+    },
+    toString: _ => {
+        return `${opStr}(${left}, ${right})`;
     }
-    binOp.prototype = Object.create(BinaryOp.prototype);
-    binOp.prototype.constructor = binOp;
-    return binOp;
-}
+});
 
-function Assign(left, right) {
-    BinaryOp.call(this, left, right);
-    this.opStr = 'Assign';
-    this.eval = (env) => {
+const add = binaryOp('Add', (l,r) => l + r);
+const sub = binaryOp('Sub', (l,r) => l - r);
+const mul = binaryOp('Mul', (l,r) => l * r);
+const div = binaryOp('Div', (l,r) => l / r);
+const pow = binaryOp('Pow', Math.pow);
+const mod = binaryOp('Mod', (l,r) => l % r);
+
+const assign = (left, right) => {
+    const opStr = 'Assign';
+    const op = binaryOp('Assign', null);
+    const ob = op(left, right);
+    ob['eval'] = env => {
         let val;
-        if (this.right instanceof Num) {
-            val = this.right.value;
+        if (right.hasOwnProperty('value')) {
+            val = right.value;
         } else {
-            val = this.right.eval(env);
+            val = right.eval(env);
         }
-        env[this.left.name] = val;
+        env[left.name] = val;
         return val;
     };
-}
-Assign.prototype = Object.create(BinaryOp.prototype);
-Assign.prototype.constructor = Assign;
-
-const Add = makeBinaryOp('Add', (l,r) => l + r);
-const Sub = makeBinaryOp('Sub', (l,r) => l - r);
-const Mul = makeBinaryOp('Mul', (l,r) => l * r);
-const Div = makeBinaryOp('Div', (l,r) => l / r);
-const Pow = makeBinaryOp('Pow', Math.pow);
-const Mod = makeBinaryOp('Mod', (l,r) => l % r);
+    return ob;
+};
 
 // --------------------
+
+function processWord(word) {
+    word = word.join('');
+    let n = Number.parseFloat(word);
+    if (!isNaN(n)) {
+        return n;
+    }
+    return word;
+}
 
 function tokenize(input) {
     let tokens = [];
@@ -106,13 +85,7 @@ function tokenize(input) {
         let chr = input[i];
         if (SEPARATORS.indexOf(chr) !== -1 || chr === ' ') {
             if (word.length > 0) {
-                word = word.join('');
-                let n;
-                if(!isNaN(n = Number.parseFloat(word))) {
-                    tokens.push(n);
-                } else {
-                    tokens.push(word);
-                }
+                tokens.push(processWord(word));
                 word = [];
             }
             if (chr !== ' ') {
@@ -123,7 +96,7 @@ function tokenize(input) {
         }
     }
     if (word.length > 0) {
-        tokens.push(word.join(''));
+        tokens.push(processWord(word));
     }
     return tokens;
 }
@@ -138,32 +111,32 @@ function parse(tokens) {
             var op = tokens[idx];
             var { expr: r, idx } = parseToken(idx+1);
             if (tokens[idx] !== ')') {
-                throw new ParseError('Invalid expression: missing closing bracket?');
+                throw parseError('Invalid expression: missing closing bracket?');
             }
             console.log(`>>> L:${l.toString()} OP:${op} R:${r.toString()}`);
             if ( op === '=' ) {
-                expr = new Assign(l, r);
+                expr = assign(l, r);
             } else if ( op === '+' ) {
-                expr = new Add(l, r);
+                expr = add(l, r);
             } else if ( op === '-' ) {
-                expr = new Sub(l, r);
+                expr = sub(l, r);
             } else if ( op === '*' ) {
-                expr = new Mul(l, r);
+                expr = mul(l, r);
             } else if ( op === '/' ) {
-                expr = new Div(l, r);
+                expr = div(l, r);
             } else if ( op === '^' ) {
-                expr = new Pow(l, r);
+                expr = pow(l, r);
             } else if ( op === '%' ) {
-                expr = new Mod(l, r);
+                expr = mod(l, r);
             } else {
-                throw new ParseError('Unknown operator: ' + op);
+                throw parseError('Unknown operator: ' + op);
             }
         } else if (typeof token === 'number') {
-            expr = new Num(token);
+            expr = num(token);
         } else if (/^[a-zA-Z]+$/.test(token)) {
-            expr = new Variable(token);
+            expr = variable(token);
         } else {
-            throw new ParseError('Invalid token: ' + token);
+            throw parseError('Invalid token: ' + token);
         }
         return { expr, idx: idx + 1 }
     }
@@ -238,10 +211,11 @@ function parse(tokens) {
             displayExprAndResponse(line, resp);
             updateHistory(line);
         } catch (e) {
-            if (e instanceof ParseError) {
+            if (e.hasOwnProperty('msg')) {
                 window.alert(e.msg);
             } else {
                 window.alert('Invalid input!');
+                console.log(e);
             }
             histPos = history.length;
             return;
