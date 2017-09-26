@@ -69,7 +69,7 @@ const assign = (left, right) => {
 
 // --------------------
 
-function processWord(word) {
+const processWord = word => {
     word = word.join('');
     let n = Number.parseFloat(word);
     if (!isNaN(n)) {
@@ -78,7 +78,7 @@ function processWord(word) {
     return word;
 }
 
-function tokenize(input) {
+const tokenize = input => {
     let tokens = [];
     let word = [];
     for (let i=0; i<input.length; ++i) {
@@ -101,7 +101,7 @@ function tokenize(input) {
     return tokens;
 }
 
-function parse(tokens) {
+const parse = tokens => {
     console.log('-----------------');
     function parseToken(idx) {
         let token = tokens[idx];
